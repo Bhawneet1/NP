@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+#define PORT 12345
+#define BUFFER_SIZE 1024
+
+int main() {
+    int sock;
+    struct sockaddr_in recvAddr, senderAddr;
+    char buffer[BUFFER_SIZE];
+    socklen_t addrLen = sizeof(senderAddr);
+
+    // Create a UDP socket
+    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Fill receiver address structure
+    memset(&recvAddr, 0, sizeof(recvAddr));
+    recvAddr.sin_family = AF_INET;
+    recvAddr.sin_port = htons(PORT);
+    recvAddr.sin_addr.s_addr = INADDR_ANY;
+
+    // Bind the socket to the address and port
+    if (bind(sock, (struct sockaddr*)&recvAddr, sizeof(recvAddr)) < 0) {
+        perror("Bind failed");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Listening for broadcast messages on port %d...\n", PORT);
+
+    // Receive broadcast messages
+    while (1) {
+        memset(buffer, 0, BUFFER_SIZE);
+        if (recvfrom(sock, buffer, BUFFER_SIZE, 0, (struct sockaddr*)&senderAddr, &addrLen) < 0) {
+            perror("Receive failed");
+            close(sock);
+            exit(EXIT_FAILURE);
+        }
+        printf("Broadcast message received: %s\n", buffer);
+    }
+
+    close(sock);
+    return 0;
+}
